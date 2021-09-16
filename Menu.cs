@@ -74,29 +74,29 @@ namespace Waypoints
         }
 
         static void RenameMenu() {
-            re.AddSimpleButton(color("red", "Close") + "Menu", () => { re.Hide(); wa.Show(); });
+            re.AddSimpleButton(color("red", "Close") + "Menu", () => { re.Hide(); wa.Show(); UpdateText(); });
             re.AddSpacer();
             re.AddSpacer();
             re.AddSpacer();
 
-            re.AddSimpleButton("Rename\nWaypoint 1", () => Type("1", Main.Name_1.Value));
-            re.AddSimpleButton("Rename\nWaypoint 2", () => Type("2", Main.Name_2.Value));
-            re.AddSimpleButton("Rename\nWaypoint 3", () => Type("3", Main.Name_3.Value));
-            re.AddSimpleButton("Rename\nWaypoint 4", () => Type("4", Main.Name_4.Value));
+            re.AddSimpleButton("Rename\nWaypoint 1", () => Type("1", Main.Name_1));
+            re.AddSimpleButton("Rename\nWaypoint 2", () => Type("2", Main.Name_2));
+            re.AddSimpleButton("Rename\nWaypoint 3", () => Type("3", Main.Name_3));
+            re.AddSimpleButton("Rename\nWaypoint 4", () => Type("4", Main.Name_4));
 
-            re.AddSimpleButton("Rename\nWaypoint 5", () => Type("5", Main.Name_5.Value));
-            re.AddSimpleButton("Rename\nWaypoint 6", () => Type("6", Main.Name_6.Value));
-            re.AddSimpleButton("Rename\nWaypoint 7", () => Type("7", Main.Name_7.Value));
-            re.AddSimpleButton("Rename\nWaypoint 8", () => Type("8", Main.Name_8.Value));
+            re.AddSimpleButton("Rename\nWaypoint 5", () => Type("5", Main.Name_5));
+            re.AddSimpleButton("Rename\nWaypoint 6", () => Type("6", Main.Name_6));
+            re.AddSimpleButton("Rename\nWaypoint 7", () => Type("7", Main.Name_7));
+            re.AddSimpleButton("Rename\nWaypoint 8", () => Type("8", Main.Name_8));
 
-            re.AddSimpleButton("Rename\nWaypoint 7", () => Type("9", Main.Name_9.Value));
-            re.AddSimpleButton("Rename\nWaypoint 10", () => Type("10", Main.Name_10.Value));
-            re.AddSimpleButton("Rename\nWaypoint 11", () => Type("11", Main.Name_11.Value));
-            re.AddSimpleButton("Rename\nWaypoint 12", () => Type("12", Main.Name_12.Value));
+            re.AddSimpleButton("Rename\nWaypoint 7", () => Type("9", Main.Name_9));
+            re.AddSimpleButton("Rename\nWaypoint 10", () => Type("10", Main.Name_10));
+            re.AddSimpleButton("Rename\nWaypoint 11", () => Type("11", Main.Name_11));
+            re.AddSimpleButton("Rename\nWaypoint 12", () => Type("12", Main.Name_12));
         }
 
         static void ResetMenu() {
-            r.AddSimpleButton(color("red", "Close") + "Menu", () => { r.Hide(); wa.Show(); });
+            r.AddSimpleButton(color("red", "Close") + "Menu", () => { r.Hide(); wa.Show(); UpdateText(); });
             r.AddSpacer();
             r.AddSpacer();
             r.AddSpacer();
@@ -118,7 +118,7 @@ namespace Waypoints
         }
 
         static void SetMenu() {
-            s.AddSimpleButton(color("red", "Close") + "Menu", () => { s.Hide(); wa.Show(); });
+            s.AddSimpleButton(color("red", "Close") + "Menu", () => { s.Hide(); wa.Show(); UpdateText(); });
             s.AddSpacer();
             s.AddSpacer();
             s.AddSpacer();
@@ -183,9 +183,10 @@ namespace Waypoints
         }
 
         static string text(string buttonName, string text) {
-            if (buttons[buttonName] != null)
+            if (buttons[buttonName] != null) {
+                buttons[buttonName].GetComponentInChildren<Text>().supportRichText = true;
                 return buttons[buttonName].GetComponentInChildren<Text>().text = text;
-            else return null;
+            } else return null;
         }
 
         static void UpdateText() {
@@ -204,10 +205,10 @@ namespace Waypoints
             text("main_12", Main.Name_12.Value);
         }
 
-        static void Type(string WaypointNumber, string NameTarget) {
+        static void Type(string WaypointNumber, MelonPreferences_Entry<string> Entry) {
             UI.ShowInputPopup($"Rename Waypoint {WaypointNumber}", "", InputField.InputType.Standard, false, "Rename",
                 (s, __, ___) => {
-                    NameTarget = s;
+                    MelonPreferences.GetEntry<string>(Main.Waypoint.Identifier, Entry.Identifier).Value = s; // Because Entry.Value = s hates me
                     MelonPreferences.Save();
                     UpdateText();
                 }, null, $"Name of waypoint #{WaypointNumber}");
