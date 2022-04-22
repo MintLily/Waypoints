@@ -1,5 +1,6 @@
 using MelonLoader;
 using System;
+using Waypoints.Lib;
 
 namespace Waypoints
 {
@@ -7,15 +8,15 @@ namespace Waypoints
     {
         public const string Name = "Waypoints";
         public const string Author = "Lily";
-        public const string Company = null;
-        public const string Version = "1.0.0";
+        public const string Company = "Minty Labs";
+        public const string Version = "1.1.0";
         public const string DownloadLink = "https://github.com/MintLily/Waypoints";
         public const string Description = "A standalone waypoint system you can use across worlds.";
     }
 
     public class Main : MelonMod
     {
-        public static bool isDebug;
+        public static bool IsDebug;
         internal MelonMod Waypoints;
         public static MelonPreferences_Category Waypoint;
         public static MelonPreferences_Entry<string> Name_1, Name_2, Name_3, Name_4, Name_5, Name_6, Name_7, Name_8,
@@ -23,15 +24,17 @@ namespace Waypoints
         public static MelonPreferences_Entry<string> Waypoint_1, Waypoint_2, Waypoint_3, Waypoint_4, Waypoint_5, Waypoint_6, Waypoint_7, Waypoint_8,
             Waypoint_9, Waypoint_10, Waypoint_11, Waypoint_12;
         public static MelonPreferences_Entry<string> Rot_1, Rot_2, Rot_3, Rot_4, Rot_5, Rot_6, Rot_7, Rot_8, Rot_9, Rot_10, Rot_11, Rot_12;
+        internal static readonly MelonLogger.Instance Logger = new(BuildInfo.Name, ConsoleColor.Yellow);
 
         public override void OnApplicationStart() {
             MelonLogger.Msg("Initializing . . .");
             Waypoints = this;
             if (MelonDebug.IsEnabled() || Environment.CommandLine.Contains("--way.debug")) {
-                isDebug = true;
+                IsDebug = true;
                 MelonLogger.Msg(ConsoleColor.Green, "Debug mode is active");
             }
 
+            Patches.SetupPacthes();
             Menu.InitUi();
 
             Waypoint = MelonPreferences.CreateCategory("Waypoints", "Waypoints");
@@ -87,9 +90,11 @@ namespace Waypoints
 
         public override void OnApplicationQuit() => MelonPreferences.Save();
 
+        public override void OnSceneWasInitialized(int buildIndex, string sceneName) => Lib.CheckWorldAllowed.WorldChange(buildIndex);
+
         public static void Log(string s, bool isDebug = false) {
-            if (isDebug) MelonLogger.Msg(ConsoleColor.Green, s);
-            else MelonLogger.Msg(s);
+            var c = Console.ForegroundColor;
+            Logger.Msg(isDebug ? ConsoleColor.DarkMagenta : c, s);
         }
     }
 }
