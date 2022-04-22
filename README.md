@@ -6,8 +6,9 @@ Need to install MelonLoader?<br>
 Click [this link](https://melonwiki.xyz/) to get started!
 
 ### Prerequisites
-MelonLoader: v0.4.3 (Alpha)<br>
-Game: VRChat build 1132+
+MelonLoader: v0.5.4 (Alpha)<br>
+Game: VRChat build 1190+
+Mod: UIExpansionKit v1.0.1+
 
 ### Preview
 <img src="https://mintlily.lgbt/img/upload/gcYUIB1eZImC.jpg" alt="Preview" /><br /><br />
@@ -54,7 +55,14 @@ Name_12 = "Waypoint 12"
 Waypoint_12 = "0 0 0"
 Rotation_12 = "0 0 0 0"
 ```
+<i>Name and Rotation Variables are hidden in-game from UIX</i>
 
 # Change Log
+### v1.1.0
+- Added Reset All Waypoints function
+- Update Risky Functions
+- - Removed emmVRC Network URL checks
+- Updated ML & Mod references
+
 ### v1.0.0
-* Initial Release<br>
+- Initial Release<br>
