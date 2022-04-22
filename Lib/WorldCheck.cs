@@ -2,87 +2,61 @@
 using System.Collections.Generic;
 using System.Collections;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
-using VRC.Core;
-using System.Net;
 using MelonLoader;
+using UnityEngine.SceneManagement;
+using VRC.Core;
 
-namespace Waypoints.Lib
-{
-    internal static class CheckWorldAllowed
-    {
-        internal static bool WorldAllowed = false;
+namespace Waypoints.Lib {
+    // Came from https://github.com/RequiDev/ReModCE/blob/master/ReModCE/Managers/RiskyFunctionsManager.cs
+    internal class CheckWorldAllowed {
+        //public static CheckWorldAllowed Instance;
 
-        internal static IEnumerator CheckWorld() {
-            Main.Log("Checking World", Main.isDebug);
+        public static event Action<bool> OnRiskyFunctionsChanged;
 
-            string worldId;
-            if (RoomManager.field_Internal_Static_ApiWorld_0 == null) {
-                Main.Log("Checking World => Halted", Main.isDebug);
-                yield break;
-            }
-            worldId = RoomManager.field_Internal_Static_ApiWorld_0.id;
-            Main.Log($"Got WorldID: {worldId}", Main.isDebug);
+        private static readonly List<string> BlacklistedTags = new() {
+            "author_tag_game",
+            "author_tag_games",
+            "author_tag_club",
+            "admin_game"
+        };
 
-            WorldAllowed = false;
+        public static bool RiskyFunctionAllowed { get; private set; }
 
-            // Allow world creators more choice over Risky Functions without relying on our whitelist, we are looking for "eVRCRiskFuncDisable" or "eVRCRiskFuncEnable"
-            // If these are present, they will completely override our choice from tags and the online list, and manually disable or enable Risky Functions
-            GameObject[] allWorldGameObjects = UnityEngine.SceneManagement.SceneManager.GetActiveScene().GetRootGameObjects();
-            if (allWorldGameObjects.Any(a => a.name == "eVRCRiskFuncDisable") || allWorldGameObjects.Any(a => a.name == "UniversalRiskyFuncDisable")) {
-                Main.Log("GameObject found: Disabling Fucntions", Main.isDebug);
-                WorldAllowed = false;
-                yield break;
-            } else if (allWorldGameObjects.Any(a => a.name == "eVRCRiskFuncEnable") || allWorldGameObjects.Any(a => a.name == "UniversalRiskyFuncEnable")) {
-                Main.Log("GameObject found: Enabling Fucntions", Main.isDebug);
-                WorldAllowed = true;
-                yield break;
-            }
+        //public CheckWorldAllowed() { Instance = this; }
 
-            // Check if black/whitelisted from EmmVRC
-            string url = $"https://dl.emmvrc.com/riskyfuncs.php?worldid={worldId}";
-            WebClient www = new WebClient();
-            //while (www.IsBusy) yield return null;
-            string result = www.DownloadString(url)?.Trim().ToLower();
-            www.Dispose();
-            if (!string.IsNullOrWhiteSpace(result))
-                switch (result)
-                {
-                    case "allowed":
-                        WorldAllowed = true;
-                        yield break;
-
-                    case "denied":
-                        WorldAllowed = false;
-                        yield break;
-                }
-
-            Main.Log("Checking World Tags, no response from EmmVRC", Main.isDebug);
-
-            // no result from server or they're currently down
-            // Check tags then. should also be in cache as it just got downloaded
-            API.Fetch<ApiWorld>(worldId, new Action<ApiContainer>(container => {
-                ApiWorld apiWorld;
-                if ((apiWorld = container.Model.TryCast<ApiWorld>()) != null)
-                {
-                    foreach (string worldTag in apiWorld.tags)
-                        if (worldTag.IndexOf("game", StringComparison.OrdinalIgnoreCase) >= 0) {
-                            WorldAllowed = false;
-                            return;
-                        }
-
-                    WorldAllowed = true;
-                    return;
-                }
-                else MelonLogger.Error("Failed to cast ApiModel to ApiWorld");
-            }), disableCache: false);
-
-            // If all else fails, or is errored return false
-            WorldAllowed = false;
+        public static void WorldChange(int buildIndex) {
+            if (buildIndex == -1) MelonCoroutines.Start(CheckWorld());
         }
 
-        public static void OnWorldLeave() => WorldAllowed = false;
+        private static IEnumerator CheckWorld() {
+            while (RoomManager.field_Internal_Static_ApiWorld_0 == null)
+                yield return new WaitForEndOfFrame();
+            var apiWorld = RoomManager.field_Internal_Static_ApiWorld_0;
+
+            var worldName = apiWorld.name.ToLower();
+            var tags = new List<string>();
+            foreach (var tag in apiWorld.tags)
+                tags.Add(tag.ToLower());
+
+            var hasBlacklistedTag = BlacklistedTags.Any(tag => tags.Contains(tag));
+            var riskyFunctionAllowed = !worldName.Contains("club") && !worldName.Contains("game") && !hasBlacklistedTag;
+
+            var instanceAccessType = RoomManager.field_Internal_Static_ApiWorldInstance_0.type;
+            riskyFunctionAllowed = !(instanceAccessType == InstanceAccessType.Public || instanceAccessType == InstanceAccessType.FriendsOfGuests);
+
+            var rootGameObjects = SceneManager.GetActiveScene().GetRootGameObjects();
+            if (rootGameObjects.Any(go => go.name is "eVRCRiskFuncDisable" or "UniversalRiskyFuncDisable"))
+                riskyFunctionAllowed = false;
+            else if (rootGameObjects.Any(go => go.name is "eVRCRiskFuncEnable" or "UniversalRiskyFuncEnable"))
+                riskyFunctionAllowed = true;
+
+            RiskyFunctionAllowed = riskyFunctionAllowed;
+            OnRiskyFunctionsChanged?.Invoke(RiskyFunctionAllowed);
+
+            Main.Log($"RiskyFunctions: {RiskyFunctionAllowed}", Main.IsDebug);
+        }
+
+        public static void OnWorldLeave() => RiskyFunctionAllowed = false;
     }
 }
