@@ -62,6 +62,7 @@ Rotation_12 = "0 0 0 0"
 - Added Reset All Waypoints function
 - Update Risky Functions
 - - Removed emmVRC Network URL checks
+- - Worlds that are FriendsOnly, InviteOnly, or InvitePlus will allow risky functions
 - Updated ML & Mod references
 
 ### v1.0.0
