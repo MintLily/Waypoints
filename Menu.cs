@@ -4,77 +4,86 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TMPro;
 using UIExpansionKit;
 using UIExpansionKit.API;
+using UIExpansionKit.API.Controls;
 using UnityEngine;
 using UnityEngine.UI;
 using Waypoints.Lib;
 
 namespace Waypoints
 {
-    class Menu
-    {
-        static ICustomShowableLayoutedMenu wa = ExpansionKitApi.CreateCustomQuickMenuPage(LayoutDescription.QuickMenu4Columns);
-        static ICustomShowableLayoutedMenu re = ExpansionKitApi.CreateCustomQuickMenuPage(LayoutDescription.QuickMenu4Columns);
-        static ICustomShowableLayoutedMenu r = ExpansionKitApi.CreateCustomQuickMenuPage(LayoutDescription.QuickMenu4Columns);
-        static ICustomShowableLayoutedMenu s = ExpansionKitApi.CreateCustomQuickMenuPage(LayoutDescription.QuickMenu4Columns);
+    internal static class Menu {
+        private static ICustomShowableLayoutedMenu
+            wa = ExpansionKitApi.CreateCustomQuickMenuPage(LayoutDescription.QuickMenu4Columns),
+            re = ExpansionKitApi.CreateCustomQuickMenuPage(LayoutDescription.QuickMenu4Columns),
+            r  = ExpansionKitApi.CreateCustomQuickMenuPage(LayoutDescription.QuickMenu4Columns),
+            s  = ExpansionKitApi.CreateCustomQuickMenuPage(LayoutDescription.QuickMenu4Columns),
+            really = ExpansionKitApi.CreateCustomQuickMenuPage(LayoutDescription.WideSlimList);
 
-        static string color(string c, string s) { return $"<color={c}>{s}</color> "; }
+        private static string Color(string color, string text) => $"<color={color}>{text}</color> ";
 
-        static Dictionary<string, Transform> buttons = new Dictionary<string, Transform>();
+        private static Dictionary<string, IMenuButton> _menuButtons = new();
 
-        static bool runOnce_start, runOnce;
+        private static bool _started, _ranOnce;
 
         public static void InitUi() {
             try {
                 ExpansionKitApi.GetExpandedMenu(ExpandedMenu.QuickMenu).AddSimpleButton("Waypoints", () => {
-                    if (!runOnce_start) {
-                        MelonLogger.Msg("Setting up Menus");
-                        WaypointMenu();
-                        runOnce_start = true;
-                        wa.Show();
-                    } else if (runOnce_start) {
-                        wa.Show();
-                        UpdateText();
+                    switch (_started) {
+                        case false:
+                            Main.Log("Setting up Menus");
+                            WaypointMenu();
+                            _started = true;
+                            wa.Show();
+                            break;
+                        case true:
+                            wa.Show();
+                            UpdateText();
+                            break;
                     }
                 });
-            } catch (Exception e) { MelonLogger.Error("UIXMenu:\n" + e.ToString()); }
+            } catch (Exception e) { Main.Logger.Error($"UIXMenu:\n{e}"); }
         }
 
-        static void WaypointMenu() {
-            buttons.Clear();
-            wa.AddSimpleButton($"{color("red", "Close") + "Menu"}\nWorld " +
-                $"{(CheckWorldAllowed.WorldAllowed ? color("#00ff00", "Allowed") : color("red", "Disallowed"))}", 
-                () => { wa.Hide(); UpdateText(); }, (button) => buttons["BackBtn"] = button.transform);
-            wa.AddSimpleButton(color("cyan", "Rename") + "Menu", () => re.Show());
-            wa.AddSimpleButton(color("#00ff00", "Set") + "Menu", () => s.Show());
-            wa.AddSimpleButton(color("yellow", "Reset") + "Menu", () => r.Show());
+        private static void WaypointMenu() {
+            _menuButtons.Clear();
 
-            wa.AddSimpleButton(Main.Name_1.Value, () => Teleport(Main.Waypoint_1, Main.Rot_1), (button) => buttons["main_1"] = button.transform);
-            wa.AddSimpleButton(Main.Name_2.Value, () => Teleport(Main.Waypoint_2, Main.Rot_2), (button) => buttons["main_2"] = button.transform);
-            wa.AddSimpleButton(Main.Name_3.Value, () => Teleport(Main.Waypoint_3, Main.Rot_3), (button) => buttons["main_3"] = button.transform);
-            wa.AddSimpleButton(Main.Name_4.Value, () => Teleport(Main.Waypoint_4, Main.Rot_4), (button) => buttons["main_4"] = button.transform);
+            var b = CheckWorldAllowed.RiskyFunctionAllowed;
+            var updateText = Color(b ? "#00ff00" : "red", b ? "Allowed" : "Disallowed");
 
-            wa.AddSimpleButton(Main.Name_5.Value, () => Teleport(Main.Waypoint_5, Main.Rot_5), (button) => buttons["main_5"] = button.transform);
-            wa.AddSimpleButton(Main.Name_6.Value, () => Teleport(Main.Waypoint_6, Main.Rot_6), (button) => buttons["main_6"] = button.transform);
-            wa.AddSimpleButton(Main.Name_7.Value, () => Teleport(Main.Waypoint_7, Main.Rot_7), (button) => buttons["main_7"] = button.transform);
-            wa.AddSimpleButton(Main.Name_8.Value, () => Teleport(Main.Waypoint_8, Main.Rot_8), (button) => buttons["main_8"] = button.transform);
+            _menuButtons["BackBtn"] = wa.AddSimpleButton($"{Color("red", "Close") + "Menu"}\nWorld {updateText}", () => { wa.Hide(); UpdateText(); });
+            wa.AddSimpleButton(Color("#00ffff", "Rename") + "Menu", () => re.Show());
+            wa.AddSimpleButton(Color("#00ff00", "Set") + "Menu", () => s.Show());
+            wa.AddSimpleButton(Color("yellow", "Reset") + "Menu", () => r.Show());
 
-            wa.AddSimpleButton(Main.Name_9.Value, () => Teleport(Main.Waypoint_9, Main.Rot_9), (button) => buttons["main_9"] = button.transform);
-            wa.AddSimpleButton(Main.Name_10.Value, () => Teleport(Main.Waypoint_10, Main.Rot_10), (button) => buttons["main_10"] = button.transform);
-            wa.AddSimpleButton(Main.Name_11.Value, () => Teleport(Main.Waypoint_11, Main.Rot_11), (button) => buttons["main_11"] = button.transform);
-            wa.AddSimpleButton(Main.Name_12.Value, () => Teleport(Main.Waypoint_12, Main.Rot_12), (button) => buttons["main_12"] = button.transform);
+            _menuButtons["main_1"] = wa.AddSimpleButton(Main.Name_1.Value, () => Teleport(Main.Waypoint_1, Main.Rot_1));
+            _menuButtons["main_2"] = wa.AddSimpleButton(Main.Name_2.Value, () => Teleport(Main.Waypoint_2, Main.Rot_2));
+            _menuButtons["main_3"] = wa.AddSimpleButton(Main.Name_3.Value, () => Teleport(Main.Waypoint_3, Main.Rot_3));
+            _menuButtons["main_4"] = wa.AddSimpleButton(Main.Name_4.Value, () => Teleport(Main.Waypoint_4, Main.Rot_4));
 
-            if (!runOnce) {
+            _menuButtons["main_5"] = wa.AddSimpleButton(Main.Name_5.Value, () => Teleport(Main.Waypoint_5, Main.Rot_5));
+            _menuButtons["main_6"] = wa.AddSimpleButton(Main.Name_6.Value, () => Teleport(Main.Waypoint_6, Main.Rot_6));
+            _menuButtons["main_7"] = wa.AddSimpleButton(Main.Name_7.Value, () => Teleport(Main.Waypoint_7, Main.Rot_7));
+            _menuButtons["main_8"] = wa.AddSimpleButton(Main.Name_8.Value, () => Teleport(Main.Waypoint_8, Main.Rot_8));
+
+            _menuButtons["main_9"] = wa.AddSimpleButton(Main.Name_9.Value, () => Teleport(Main.Waypoint_9, Main.Rot_9));
+            _menuButtons["main_10"] = wa.AddSimpleButton(Main.Name_10.Value, () => Teleport(Main.Waypoint_10, Main.Rot_10));
+            _menuButtons["main_11"] = wa.AddSimpleButton(Main.Name_11.Value, () => Teleport(Main.Waypoint_11, Main.Rot_11));
+            _menuButtons["main_12"] = wa.AddSimpleButton(Main.Name_12.Value, () => Teleport(Main.Waypoint_12, Main.Rot_12));
+
+            if (!_ranOnce) {
                 RenameMenu();
                 ResetMenu();
                 SetMenu();
-                runOnce = true;
+                ReallyResetAll();
+                _ranOnce = true;
             }
         }
 
-        static void RenameMenu() {
-            re.AddSimpleButton(color("red", "Close") + "Menu", () => { re.Hide(); wa.Show(); UpdateText(); });
+        private static void RenameMenu() {
+            re.AddSimpleButton(Color("#B9BBBE", "Go Back"), () => { re.Hide(); wa.Show(); UpdateText(); });
             re.AddSpacer();
             re.AddSpacer();
             re.AddSpacer();
@@ -95,11 +104,11 @@ namespace Waypoints
             re.AddSimpleButton("Rename\nWaypoint 12", () => Type("12", Main.Name_12));
         }
 
-        static void ResetMenu() {
-            r.AddSimpleButton(color("red", "Close") + "Menu", () => { r.Hide(); wa.Show(); UpdateText(); });
+        private static void ResetMenu() {
+            r.AddSimpleButton(Color("#B9BBBE", "Go Back"), () => { r.Hide(); wa.Show(); UpdateText(); });
             r.AddSpacer();
             r.AddSpacer();
-            r.AddSpacer();
+            r.AddSimpleButton(Color("red", "Reset All"), () => { r.Hide(); really.Show(); });
 
             r.AddSimpleButton("Reset\nWaypoint 1", () => ResetWaypointAndRotation(Main.Name_1, "1", Main.Waypoint_1, Main.Rot_1));
             r.AddSimpleButton("Reset\nWaypoint 2", () => ResetWaypointAndRotation(Main.Name_2, "2", Main.Waypoint_2, Main.Rot_2));
@@ -117,8 +126,8 @@ namespace Waypoints
             r.AddSimpleButton("Reset\nWaypoint 12", () => ResetWaypointAndRotation(Main.Name_12, "12", Main.Waypoint_12, Main.Rot_12));
         }
 
-        static void SetMenu() {
-            s.AddSimpleButton(color("red", "Close") + "Menu", () => { s.Hide(); wa.Show(); UpdateText(); });
+        private static void SetMenu() {
+            s.AddSimpleButton(Color("#B9BBBE", "Go Back"), () => { s.Hide(); wa.Show(); UpdateText(); });
             s.AddSpacer();
             s.AddSpacer();
             s.AddSpacer();
@@ -139,35 +148,82 @@ namespace Waypoints
             s.AddSimpleButton("Set\nWaypoint 12", () => AssignWaypointAndRotation(Main.Waypoint_12, Main.Rot_12));
         }
 
-        internal static string[] splitWaypoint(string waypoint) => waypoint.Split(' ');
+        private static void ReallyResetAll() {
+            really.AddLabel("Would you really like to reset all Waypoints?");
+            really.AddLabel($"<i>{Color("#B9BBBE", "This will set all waypoint values to ZERO and also reset all custom names.")}</i>");
+            // Waiting for deprecated code to be removed, to add <size=12></size> later
+            really.AddSpacer();
+            really.AddSimpleButton(Color("red", "Yes, Reset All"), () => {
+                ResetWaypointAndRotation(Main.Waypoint_1, Main.Rot_1);
+                ResetWaypointAndRotation(Main.Waypoint_2, Main.Rot_2);
+                ResetWaypointAndRotation(Main.Waypoint_3, Main.Rot_3);
+                ResetWaypointAndRotation(Main.Waypoint_4, Main.Rot_4);
+                ResetWaypointAndRotation(Main.Waypoint_5, Main.Rot_5);
+                ResetWaypointAndRotation(Main.Waypoint_6, Main.Rot_6);
+                ResetWaypointAndRotation(Main.Waypoint_7, Main.Rot_7);
+                ResetWaypointAndRotation(Main.Waypoint_8, Main.Rot_8);
+                ResetWaypointAndRotation(Main.Waypoint_9, Main.Rot_9);
+                ResetWaypointAndRotation(Main.Waypoint_10, Main.Rot_10);
+                ResetWaypointAndRotation(Main.Waypoint_11, Main.Rot_11);
+                ResetWaypointAndRotation(Main.Waypoint_12, Main.Rot_12);
+                SavePref(Main.Name_1, "Waypoint 1");
+                SavePref(Main.Name_2, "Waypoint 2");
+                SavePref(Main.Name_3, "Waypoint 3");
+                SavePref(Main.Name_4, "Waypoint 4");
+                SavePref(Main.Name_5, "Waypoint 5");
+                SavePref(Main.Name_6, "Waypoint 6");
+                SavePref(Main.Name_7, "Waypoint 7");
+                SavePref(Main.Name_8, "Waypoint 8");
+                SavePref(Main.Name_9, "Waypoint 9");
+                SavePref(Main.Name_10, "Waypoint 10");
+                SavePref(Main.Name_11, "Waypoint 11");
+                SavePref(Main.Name_12, "Waypoint 12");
+                // Yes, I know there is a MelonPref.ResetToDefault() this is easier to read for me. I understand the logic better this way.
+                MelonPreferences.Save();
+                UpdateText();
+            });
+            really.AddSimpleButton("No, Go Back", () => {
+                really.Hide();
+                r.Show();
+            });
+        }
 
-        internal static void AssignWaypointAndRotation(MelonPreferences_Entry<string> waypoint, MelonPreferences_Entry<string> rotaion) {
-            if (!CheckWorldAllowed.WorldAllowed) return;
-            float vectorX = PlayerUtils.GetPlayerPosition().x;
-            float vectorY = PlayerUtils.GetPlayerPosition().y;
-            float vectorZ = PlayerUtils.GetPlayerPosition().z;
+        private static string[] SplitWaypoint(string waypoint) => waypoint.Split(' ');
 
-            float QuatX = PlayerUtils.GetPlayerRotation().x;
-            float QuatY = PlayerUtils.GetPlayerRotation().y;
-            float QuatZ = PlayerUtils.GetPlayerRotation().z;
-            float QuatW = PlayerUtils.GetPlayerRotation().w;
+        private static void AssignWaypointAndRotation(MelonPreferences_Entry<string> waypoint, MelonPreferences_Entry<string> rotation) {
+            if (!CheckWorldAllowed.RiskyFunctionAllowed) return;
+            var vectorX = PlayerUtils.GetPlayerPosition().x;
+            var vectorY = PlayerUtils.GetPlayerPosition().y;
+            var vectorZ = PlayerUtils.GetPlayerPosition().z;
+
+            var quatX = PlayerUtils.GetPlayerRotation().x;
+            var quatY = PlayerUtils.GetPlayerRotation().y;
+            var quatZ = PlayerUtils.GetPlayerRotation().z;
+            var quatW = PlayerUtils.GetPlayerRotation().w;
 
             waypoint.Value = $"{vectorX} {vectorY} {vectorZ}";
-            rotaion.Value = $"{QuatX} {QuatY} {QuatZ} {QuatW}";
+            rotation.Value = $"{quatX} {quatY} {quatZ} {quatW}";
             MelonPreferences.Save();
         }
 
-        internal static void ResetWaypointAndRotation(MelonPreferences_Entry<string> name, string num, MelonPreferences_Entry<string> waypoint, MelonPreferences_Entry<string> rotaion) {
+        private static void ResetWaypointAndRotation(MelonPreferences_Entry<string> name, string num, MelonPreferences_Entry<string> waypoint, MelonPreferences_Entry<string> rotation) {
             //name.Value = "Waypoint " + num;
             waypoint.Value = "0 0 0";
-            rotaion.Value = "0 0 0 0";
+            rotation.Value = "0 0 0 0";
+            MelonPreferences.Save();
+        }
+        
+        private static void ResetWaypointAndRotation(MelonPreferences_Entry<string> waypoint, MelonPreferences_Entry<string> rotation) {
+            //name.Value = "Waypoint " + num;
+            waypoint.Value = "0 0 0";
+            rotation.Value = "0 0 0 0";
             MelonPreferences.Save();
         }
 
-        internal static void Teleport(MelonPreferences_Entry<string> waypoint, MelonPreferences_Entry<string> rotaion) {
-            if (!CheckWorldAllowed.WorldAllowed) return;
-            string[] pos = splitWaypoint(waypoint.Value);
-            string[] rot = splitWaypoint(rotaion.Value);
+        internal static void Teleport(MelonPreferences_Entry<string> waypoint, MelonPreferences_Entry<string> rotation) {
+            if (!CheckWorldAllowed.RiskyFunctionAllowed) return;
+            var pos = SplitWaypoint(waypoint.Value);
+            var rot = SplitWaypoint(rotation.Value);
 
             float _1, _2, _3, __1, __2, __3, __4;
             float.TryParse(pos[0], out _1);
@@ -182,36 +238,41 @@ namespace Waypoints
             PlayerUtils.SendToLocation(new Vector3(_1, _2, _3), new Quaternion(__1, __2, __3, __4));
         }
 
-        static string text(string buttonName, string text) {
-            if (buttons[buttonName] != null) {
-                buttons[buttonName].GetComponentInChildren<Text>().supportRichText = true;
-                return buttons[buttonName].GetComponentInChildren<Text>().text = text;
-            } else return null;
+        private static string GetButtonText(string buttonName, string text) {
+            if (_menuButtons[buttonName] == null) return null;
+            _menuButtons[buttonName].CurrentInstance!.GetComponentInChildren<TextMeshProUGUI>().richText = true;
+            return _menuButtons[buttonName].Text = text;
         }
 
-        static void UpdateText() {
-            text("BackBtn", $"{color("red", "Close") + "Menu"}\nWorld " + $"{(CheckWorldAllowed.WorldAllowed ? color("#00ff00", "Allowed") : color("red", "Disallowed"))}");
-            text("main_1", Main.Name_1.Value);
-            text("main_2", Main.Name_2.Value);
-            text("main_3", Main.Name_3.Value);
-            text("main_4", Main.Name_4.Value);
-            text("main_5", Main.Name_5.Value);
-            text("main_6", Main.Name_6.Value);
-            text("main_7", Main.Name_7.Value);
-            text("main_8", Main.Name_8.Value);
-            text("main_9", Main.Name_9.Value);
-            text("main_10", Main.Name_10.Value);
-            text("main_11", Main.Name_11.Value);
-            text("main_12", Main.Name_12.Value);
+        private static void UpdateText() {
+            var b = CheckWorldAllowed.RiskyFunctionAllowed;
+            var updateText = Color(b ? "#00ff00" : "red", b ? "Allowed" : "Disallowed");
+
+            GetButtonText("BackBtn", $"{Color("red", "Close") + "Menu"}\nWorld {updateText}");
+            GetButtonText("main_1", Main.Name_1.Value);
+            GetButtonText("main_2", Main.Name_2.Value);
+            GetButtonText("main_3", Main.Name_3.Value);
+            GetButtonText("main_4", Main.Name_4.Value);
+            GetButtonText("main_5", Main.Name_5.Value);
+            GetButtonText("main_6", Main.Name_6.Value);
+            GetButtonText("main_7", Main.Name_7.Value);
+            GetButtonText("main_8", Main.Name_8.Value);
+            GetButtonText("main_9", Main.Name_9.Value);
+            GetButtonText("main_10", Main.Name_10.Value);
+            GetButtonText("main_11", Main.Name_11.Value);
+            GetButtonText("main_12", Main.Name_12.Value);
         }
 
-        static void Type(string WaypointNumber, MelonPreferences_Entry<string> Entry) {
-            UI.ShowInputPopup($"Rename Waypoint {WaypointNumber}", "", InputField.InputType.Standard, false, "Rename",
-                (s, __, ___) => {
-                    MelonPreferences.GetEntry<string>(Main.Waypoint.Identifier, Entry.Identifier).Value = s; // Because Entry.Value = s hates me
+        private static void Type(string waypointNumber, MelonPreferences_Entry entry) {
+            UI.ShowInputPopup($"Rename Waypoint {waypointNumber}", "", InputField.InputType.Standard, false, "Rename",
+                (text, __, ___) => {
+                    SavePref(entry, text);
                     MelonPreferences.Save();
                     UpdateText();
-                }, null, $"Name of waypoint #{WaypointNumber}");
+                }, null, $"Name of waypoint #{waypointNumber}");
         }
+
+        private static void SavePref(MelonPreferences_Entry entry, string text) =>
+            MelonPreferences.GetEntry<string>(Main.Waypoint.Identifier, entry.Identifier).Value = text;
     }
 }
